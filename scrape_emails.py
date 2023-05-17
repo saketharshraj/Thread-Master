@@ -20,3 +20,10 @@ class Scrape:
             return match.group()
         else:
             return None
+
+    @staticmethod
+    def dummy_function(param):
+        s = 100
+        for i in range(100):
+            s= s+1
+

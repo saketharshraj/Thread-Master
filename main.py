@@ -3,16 +3,16 @@ import time
 import pickle
 import concurrent.futures
 from scrape_emails import Scrape
+import matplotlib.pyplot as plt
 
 
 class ThreadMaster:
     def __init__(self):
         self.worker_count = 1
-        self.data_sizes = [10]
+        self.data_sizes = [10**i for i in range(1, 2)]
         self.results = []
         try:
-            filename = self.get_unique_filename('observation_data')
-            with open(filename, "rb") as fp:
+            with open('observation_data', "rb") as fp:
                 self.results = pickle.load(fp)
         except FileNotFoundError:
             print('No initial observation data found')
@@ -34,7 +34,7 @@ class ThreadMaster:
             # reset worker count
             self.worker_count = 1
 
-            for _ in range(10):
+            for _ in range(1, 11):
                 # set worker count
                 self.worker_count *= 2
 
@@ -63,9 +63,25 @@ class ThreadMaster:
                 index += 1
         return filename
 
-    # save generated graphs as image
+    # generate graph and save images : data_size-worker_count
+    def generate_and_save_graph(self):
+        # generate graph for all data sizes
+        for data_size in self.data_sizes:
+            # get results of specific data size
+            graph_data = [data for data in self.results if data['data_size'] == data_size]
+            # split data in x-axis and y-axis
+            if len(graph_data):
+                worker_counts, exec_times = zip(*[(d['worker_count'], d['execution_time']) for d in graph_data])
+                plt.plot(worker_counts, exec_times, marker='o')
+                plt.xlabel('Thread Count')
+                plt.ylabel('Execution Time (seconds)')
+                plt.title('Scraping Script Performance with Increasing Thread Count')
+
+                for i, txt in enumerate(exec_times):
+                    plt.annotate(txt, (worker_counts[i], exec_times[i]))
+                plt.show()
 
 
 tm_obj = ThreadMaster()
-tm_obj.start_thread_visualiser()
-
+# tm_obj.start_thread_visualiser()
+tm_obj.generate_and_save_graph()

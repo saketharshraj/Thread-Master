@@ -1,3 +1,4 @@
+import os
 import time
 import pickle
 import concurrent.futures
@@ -6,8 +7,16 @@ from scrape_emails import Scrape
 
 class ThreadMaster:
     def __init__(self):
-        self.worker_count = 2
-        self.data_sizes = [10, 100, 1000, 10000, 100000]
+        self.worker_count = 1
+        self.data_sizes = [10]
+        self.results = []
+        try:
+            filename = self.get_unique_filename('observation_data')
+            with open(filename, "rb") as fp:
+                self.results = pickle.load(fp)
+        except FileNotFoundError:
+            print('No initial observation data found')
+
         try:
             with open("companies-data", "rb") as fp:
                 self.companies_data = pickle.load(fp)
@@ -23,18 +32,40 @@ class ThreadMaster:
     def start_thread_visualiser(self):
         for data_size in self.data_sizes:
             # reset worker count
-            self.worker_count = 2
+            self.worker_count = 1
 
-            # set worker count
-            self.worker_count *= 2
+            for _ in range(10):
+                # set worker count
+                self.worker_count *= 2
 
-            self.execute_thread_func(data_size)
+                start_time = time.time()
+                self.execute_thread_func(data_size)
+                execution_time = time.time() - start_time
+
+                self.results.append({
+                    'data_size': data_size,
+                    'execution_time': execution_time,
+                    'worker_count': self.worker_count
+                })
+
+        # save the generated results
+        filename = self.get_unique_filename('observation_data')
+        with open(filename, 'wb') as fp:
+            pickle.dump(self.results, fp)
+
+    @staticmethod
+    def get_unique_filename(filename):
+        if os.path.exists(filename):
+            base_name, extension = os.path.splitext(filename)
+            index = 1
+            while os.path.exists(filename):
+                filename = f"{base_name}_{index}"
+                index += 1
+        return filename
 
     # save generated graphs as image
 
 
 tm_obj = ThreadMaster()
-start_time = time.time()
 tm_obj.start_thread_visualiser()
-execution_time = time.time() - start_time
 
